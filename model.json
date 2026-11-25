@@ -1,0 +1,36 @@
+{
+  "name": "HAIP M2 logistic regression (squad 11)",
+  "source": "drowsiness_model.pkl -> model_params.json",
+  "inputs": [
+    "lux",
+    "noise_avg",
+    "noise_max",
+    "minute",
+    "after_lunch"
+  ],
+  "mean": [
+    812.526,
+    12.956,
+    50.242,
+    24.5,
+    0.4
+  ],
+  "scale": [
+    232.412326,
+    3.526197,
+    19.741617,
+    14.43087,
+    0.489898
+  ],
+  "coef": [
+    -1.051145,
+    -2.634766,
+    -0.99802,
+    1.237061,
+    0.447118
+  ],
+  "intercept": -3.559376,
+  "threshold": 0.5,
+  "label": "drowsy = motion_avg < 7.5 (half of morning average)",
+  "test_f1_thursday": 0.843
+}

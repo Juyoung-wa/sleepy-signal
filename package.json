@@ -1,0 +1,7 @@
+{
+  "name": "sleepy-signal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "졸음 신호등 — 교실 센서 값으로 졸음 의심 구간을 알려 주는 웹 서비스 (JOINT 11분대 PPSD)",
+  "scripts": { "dev": "node dev-server.js", "test": "node tests/run-tests.js" }
+}
