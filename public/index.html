@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>졸음 신호등 — 교실 졸음 의심 알리미</title>
+<style>
+:root{
+  --bg:#F4F6F8; --surface:#FFFFFF; --ink:#16212C; --muted:#5A6573; --line:#D8DEE5;
+  --brand:#1F4E79; --amber:#C98A12; --red:#B4412C; --green:#2E6B3D; --track:#E3E8EE;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif;font-size:16px;line-height:1.55}
+header{background:var(--brand);color:#fff;padding:18px 24px}
+header .wrap{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.lamp{display:flex;gap:6px}
+.lamp span{width:16px;height:16px;border-radius:50%;background:#ffffff33}
+.lamp .on-r{background:#F26B4F}.lamp .on-g{background:#5FC27A}
+header h1{margin:0;font-size:1.6rem;letter-spacing:-.5px}
+header p{margin:0;opacity:.85;font-size:.95rem}
+nav{max-width:1100px;margin:18px auto 0;padding:0 20px;display:flex;gap:8px}
+nav button{font:inherit;font-weight:700;padding:10px 18px;border-radius:10px 10px 0 0;border:1px solid var(--line);border-bottom:none;background:var(--track);color:var(--muted);cursor:pointer}
+nav button[aria-selected="true"]{background:var(--surface);color:var(--brand)}
+main{max-width:1100px;margin:0 auto;padding:0 20px 40px}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:0 12px 12px 12px;padding:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+h2{font-size:1.1rem;margin:0 0 4px}
+.hint{color:var(--muted);font-size:.9rem;margin:0 0 14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.chips button{font:inherit;font-size:.88rem;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.field{margin-bottom:14px}
+.field label{display:flex;justify-content:space-between;font-weight:700;margin-bottom:4px}
+.field output{color:var(--brand);font-variant-numeric:tabular-nums}
+.field small{color:var(--muted);font-size:.82rem}
+input[type=range]{width:100%;accent-color:var(--brand)}
+.seg{display:flex;gap:8px}
+.seg button{flex:1;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:#fff}
+.signal{border-radius:14px;padding:22px;color:#fff;transition:background .2s}
+.signal.red{background:var(--red)} .signal.green{background:var(--green)} .signal.wait{background:#7A8591}
+.signal .state{font-size:2.1rem;font-weight:800;line-height:1.2}
+.signal .prob{font-size:1rem;opacity:.95;margin-top:4px}
+.estimate{font-size:.85rem;color:var(--muted);margin:10px 0 16px}
+.action{border-left:6px solid var(--amber);background:#FBF4E4;padding:14px 16px;border-radius:8px;font-size:1.05rem}
+.action b{display:block;font-size:1.15rem;margin-bottom:2px}
+.err{color:var(--red);font-weight:700}
+.upload{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.btn{font:inherit;font-weight:700;padding:10px 16px;border-radius:10px;border:none;background:var(--brand);color:#fff;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+.btn:disabled{opacity:.45;cursor:default}
+.status{color:var(--muted);font-size:.92rem}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.93rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--muted);font-weight:700}
+.band{display:flex;gap:1px;height:18px;min-width:250px}
+.band i{flex:1;background:var(--green);opacity:.75}
+.band i.d{background:var(--red);opacity:1}
+.pct{font-weight:800;font-variant-numeric:tabular-nums}
+.legend{font-size:.85rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;vertical-align:-1px;margin:0 4px 0 10px}
+.top{margin:14px 0 0;padding:12px 14px;background:var(--track);border-radius:8px}
+footer{max-width:1100px;margin:0 auto;padding:0 20px 30px;color:var(--muted);font-size:.85rem}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="lamp" aria-hidden="true"><span class="on-r"></span><span></span><span class="on-g"></span></div>
+  <div><h1>졸음 신호등</h1><p>교실 센서 값으로 지금 교실이 ‘졸음 의심’ 상태인지 알려 드립니다</p></div>
+</div></header>
+
+<nav role="tablist">
+  <button role="tab" id="tab-now" aria-selected="true" aria-controls="now">지금 교실</button>
+  <button role="tab" id="tab-day" aria-selected="false" aria-controls="day">하루 리포트</button>
+</nav>
+
+<main>
+<section class="sheet" id="now" role="tabpanel" aria-labelledby="tab-now">
+  <div class="grid">
+    <div>
+      <h2>센서 값</h2>
+      <p class="hint">실제 측정 장면을 고르거나 값을 직접 움직여 보세요.</p>
+      <div class="chips" id="scenes"></div>
+      <div class="field"><label for="lux">조도 <output id="lux-o"></output></label>
+        <input type="range" id="lux" min="300" max="1000"><small>불을 켜면 약 970, 끄면 약 430</small></div>
+      <div class="field"><label for="noise_avg">평균 소음 <output id="noise_avg-o"></output></label>
+        <input type="range" id="noise_avg" min="0" max="25"><small>1분 동안의 평균 소리 크기</small></div>
+      <div class="field"><label for="noise_max">최대 소음 <output id="noise_max-o"></output></label>
+        <input type="range" id="noise_max" min="0" max="120"><small>1분 동안 가장 컸던 소리</small></div>
+      <div class="field"><label for="minute">수업 시작 후 <output id="minute-o"></output></label>
+        <input type="range" id="minute" min="0" max="49"></div>
+      <div class="field"><label id="al-l">수업 시간대</label>
+        <div class="seg" role="group" aria-labelledby="al-l">
+          <button type="button" data-al="0">점심 전 (1~4교시)</button>
+          <button type="button" data-al="1">점심 후 (5·6교시)</button>
+        </div></div>
+    </div>
+    <div aria-live="polite">
+      <h2>판정</h2>
+      <p class="hint">AI 모델(로지스틱 회귀)이 계산합니다.</p>
+      <div class="signal wait" id="signal"><div class="state" id="state">계산 중…</div><div class="prob" id="prob"></div></div>
+      <p class="estimate">‘졸음 의심’은 움직임이 오전 평균의 절반 아래로 떨어진 상태를 뜻하는 <b>추정</b>입니다. 실제로 조는지는 교실을 직접 보고 판단하세요.</p>
+      <div class="action" id="action"></div>
+      <p class="err" id="now-err" hidden></p>
+    </div>
+  </div>
+</section>
+
+<section class="sheet" id="day" role="tabpanel" aria-labelledby="tab-day" hidden>
+  <h2>하루 측정 파일로 교시별 졸음 의심 보기</h2>
+  <p class="hint">DS 형식의 CSV(조도, 노이즈평균, 최대노이즈, 교시 열 포함)를 열면 1분마다 판정합니다. 파일은 저장하지 않습니다.</p>
+  <div class="upload">
+    <button class="btn" id="pick">CSV 파일 열기</button>
+    <button class="btn ghost" id="sample">예시 파일로 보기</button>
+    <button class="btn ghost" id="export" disabled>판정 결과 CSV 받기</button>
+    <input type="file" id="file" accept=".csv,text/csv" hidden>
+    <span class="status" id="day-status">아직 연 파일이 없습니다.</span>
+  </div>
+  <div class="table-wrap" id="report"></div>
+  <p class="legend" id="legend" hidden>1분마다 한 칸<i style="background:var(--red)"></i>졸음 의심<i style="background:var(--green);opacity:.75"></i>깨어있음</p>
+  <p class="top" id="top" hidden></p>
+</section>
+</main>
+
+<footer>졸음 신호등 v1.0 · 한 교실 이틀(2026.11.17·19) 데이터로 학습한 모델이라 다른 교실에서는 결과가 달라질 수 있습니다. · <span id="loadtime"></span></footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const KEYS = ['lux','noise_avg','noise_max','minute'];
+const SCENES = [
+  {label:'화 1교시 10분째', v:[969,15,70,10,0]},
+  {label:'화 5교시 25분째', v:[433,9,32,25,1]},
+  {label:'화 6교시 15분째 (불 끔)', v:[437,9,29,15,1]},
+  {label:'화 6교시 40분째 (불 켠 뒤)', v:[963,20,66,40,1]},
+  {label:'목 6교시 35분째', v:[413,10,40,35,1]}
+];
+const TIPS = {
+  light: ['불을 켜 주세요', '교실이 어둡습니다. 화요일 6교시에 불을 켜자 움직임이 분당 3.6회에서 21회로 회복됐습니다.'],
+  activity: ['활동을 바꿔 보세요', '교실이 조용하고 수업이 길어졌습니다. 짧은 토의나 자리에서 일어나는 활동을 넣어 보세요.']
+};
+let afterLunch = 0, timer = null, seq = 0;
+
+// 탭
+document.querySelectorAll('[role=tab]').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('[role=tab]').forEach(x => x.setAttribute('aria-selected', x === t));
+  $('now').hidden = t.id !== 'tab-now'; $('day').hidden = t.id !== 'tab-day';
+}));
+
+// 지금 교실 (F-01, F-02, F-04, F-06)
+SCENES.forEach((s, i) => {
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = s.label;
+  b.addEventListener('click', () => setScene(i)); $('scenes').appendChild(b);
+});
+function setScene(i){
+  KEYS.forEach((k, j) => $(k).value = SCENES[i].v[j]); afterLunch = SCENES[i].v[4];
+  [...$('scenes').children].forEach((b, j) => b.setAttribute('aria-pressed', i === j)); refresh();
+}
+KEYS.forEach(k => $(k).addEventListener('input', () => { [...$('scenes').children].forEach(b => b.setAttribute('aria-pressed', false)); refresh(); }));
+document.querySelectorAll('[data-al]').forEach(b => b.addEventListener('click', () => {
+  afterLunch = +b.dataset.al; [...$('scenes').children].forEach(x => x.setAttribute('aria-pressed', false)); refresh();
+}));
+function current(){ const r = {}; KEYS.forEach(k => r[k] = +$(k).value); r.after_lunch = afterLunch; return r; }
+function refresh(){
+  const r = current();
+  $('lux-o').textContent = r.lux; $('noise_avg-o').textContent = r.noise_avg; $('noise_max-o').textContent = r.noise_max;
+  $('minute-o').textContent = r.minute + '분째';
+  document.querySelectorAll('[data-al]').forEach(b => b.setAttribute('aria-pressed', +b.dataset.al === afterLunch));
+  clearTimeout(timer); timer = setTimeout(() => ask(r), 120);
+}
+async function post(body){
+  const res = await fetch('/api/predict', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || '서버 응답 오류');
+  return data;
+}
+async function ask(r){
+  const my = ++seq;
+  try {
+    const out = await post(r); if (my !== seq) return;
+    $('now-err').hidden = true;
+    $('signal').className = 'signal ' + (out.drowsy ? 'red' : 'green');
+    $('state').textContent = out.drowsy ? '졸음 의심' : '깨어있음';
+    $('prob').textContent = `졸음 의심 확률 ${Math.round(out.prob * 100)}% (기준 50%)`;
+    const t = out.tip ? TIPS[out.tip] : ['지금은 괜찮습니다', '따로 손쓸 필요가 없습니다.'];
+    $('action').innerHTML = `<b>${t[0]}</b>${t[1]}`;
+  } catch (e) {
+    if (my !== seq) return;
+    $('now-err').hidden = false; $('now-err').textContent = '판정을 받지 못했습니다: ' + e.message;
+  }
+}
+
+// 하루 리포트 (F-03, F-05)
+let lastRows = null, lastResults = null;
+$('pick').addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const rd = new FileReader(); rd.onload = () => runDay(String(rd.result), f.name);
+  rd.onerror = () => dayErr('파일을 읽지 못했습니다.'); rd.readAsText(f, 'utf-8');
+});
+$('sample').addEventListener('click', async () => {
+  try { const t = await (await fetch('/sample_data.csv')).text(); runDay(t, '예시 파일 (11/17·11/19)'); }
+  catch { dayErr('예시 파일을 불러오지 못했습니다.'); }
+});
+function split(line){ const o=[]; let c='', q=false; for (const ch of line){ if(ch==='"') q=!q; else if(ch===','&&!q){o.push(c);c='';} else c+=ch; } o.push(c); return o.map(s=>s.trim()); }
+function dayErr(m){ $('day-status').textContent = m; $('day-status').classList.add('err'); $('report').innerHTML=''; $('legend').hidden = $('top').hidden = true; $('export').disabled = true; }
+async function runDay(text, name){
+  $('day-status').classList.remove('err');
+  const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return dayErr('CSV에 데이터 행이 없습니다.');
+  const head = split(lines[0]), need = ['조도','노이즈평균','최대노이즈','교시'];
+  const miss = need.filter(n => !head.includes(n));
+  if (miss.length) return dayErr(`이 파일에는 ${miss.join(', ')} 열이 없습니다.`);
+  const ix = n => head.indexOf(n), dayI = head.indexOf('날짜'), timeI = head.indexOf('시각');
+  const rows = [], meta = [], count = {};
+  for (const line of lines.slice(1)) {
+    const v = split(line), period = v[ix('교시')], day = dayI >= 0 ? v[dayI] : '';
+    const key = day + '|' + period; count[key] = (count[key] || 0);
+    const r = {lux:+v[ix('조도')], noise_avg:+v[ix('노이즈평균')], noise_max:+v[ix('최대노이즈')], minute:Math.min(count[key], 60), after_lunch:/^[56]교시/.test(period) ? 1 : 0};
+    count[key]++;
+    if (!period || [r.lux, r.noise_avg, r.noise_max].some(Number.isNaN)) continue;
+    rows.push(r); meta.push({day, period, time: timeI >= 0 ? v[timeI] : ''});
+  }
+  if (!rows.length) return dayErr('읽을 수 있는 행이 없습니다.');
+  $('day-status').textContent = '판정 중…';
+  let results;
+  try { results = (await post({rows})).results; } catch (e) { return dayErr('판정을 받지 못했습니다: ' + e.message); }
+  lastRows = rows.map((r, i) => ({...meta[i], ...r})); lastResults = results;
+  const groups = new Map();
+  results.forEach((o, i) => { const k = meta[i].day + '|' + meta[i].period; if (!groups.has(k)) groups.set(k, {...meta[i], cells: []}); groups.get(k).cells.push(o.drowsy); });
+  const short = d => { const m = d.match(/(\d+)월\s*(\d+)일\s*\((.)/); return m ? `${m[1]}/${m[2]}(${m[3]})` : d; };
+  let html = '<table><thead><tr><th>날짜</th><th>교시</th><th>1분 단위 판정</th><th>졸음 의심</th></tr></thead><tbody>';
+  let top = null;
+  for (const g of groups.values()) {
+    const n = g.cells.length, d = g.cells.filter(Boolean).length, p = Math.round(d / n * 100);
+    if (!top || p > top.p) top = {...g, p};
+    html += `<tr><td>${short(g.day)}</td><td>${g.period}</td><td><div class="band">${g.cells.map(c => `<i class="${c ? 'd' : ''}"></i>`).join('')}</div></td><td><span class="pct" style="color:${p >= 50 ? 'var(--red)' : 'var(--ink)'}">${p}%</span> <small>(${d}/${n}분)</small></td></tr>`;
+  }
+  $('report').innerHTML = html + '</tbody></table>';
+  $('legend').hidden = false; $('top').hidden = false;
+  $('top').innerHTML = `가장 졸음 의심이 많았던 수업: <b>${short(top.day)} ${top.period}</b> — ${top.p}%`;
+  $('day-status').textContent = `${name} · ${rows.length}행 판정 완료`;
+  $('export').disabled = false;
+}
+$('export').addEventListener('click', () => {
+  if (!lastResults) return;
+  const head = '날짜,시각,교시,조도,노이즈평균,최대노이즈,경과분,점심후,졸음의심,확률';
+  const body = lastRows.map((r, i) => [r.day, r.time, r.period, r.lux, r.noise_avg, r.noise_max, r.minute, r.after_lunch, lastResults[i].drowsy ? 1 : 0, lastResults[i].prob].join(','));
+  const blob = new Blob(['\uFEFF' + [head, ...body].join('\n')], {type: 'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '졸음판정결과.csv'; a.click();
+});
+
+setScene(1);
+addEventListener('load', () => setTimeout(() => {
+  const t = performance.getEntriesByType('navigation')[0];
+  if (t) $('loadtime').textContent = `이 화면이 열린 시간 ${(t.loadEventEnd / 1000).toFixed(2)}초`;
+}, 0));
+</script>
+</body>
+</html>
